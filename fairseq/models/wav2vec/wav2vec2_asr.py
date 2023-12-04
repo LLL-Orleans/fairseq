@@ -453,7 +453,11 @@ class Wav2VecEncoder(FairseqEncoder):
             task = tasks.setup_task(w2v_args.task, from_checkpoint=True)
             model = task.build_model(w2v_args.model, from_checkpoint=True)
             model.remove_pretraining_modules()
-            d = w2v_args.model.encoder_embed_dim
+            
+            if "encoder_embed_dim" not in w2v_args.model:
+                print("/!\ w2v_args.model.encoder_embed_dim not found! Using 768 as default value!")
+            
+            d = w2v_args.model.get("encoder_embed_dim", 768) # ugly hack: fix me!
         else:
             assert cfg.normalize
 
