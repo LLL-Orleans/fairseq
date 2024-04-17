@@ -24,7 +24,7 @@ hydra:
   run:
     dir: ${common_eval.results_path}/${dataset.gen_subset}
   sweep:
-    dir: /checkpoint/${env:USER}/${env:PREFIX}/${common_eval.results_path}
+    dir: /tmp/${env:USER}/${env:PREFIX}/${common_eval.results_path}
     subdir: ${dataset.gen_subset}
 dataset:
   max_tokens: 2_000_000

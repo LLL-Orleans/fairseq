@@ -163,10 +163,13 @@ class AudioPretrainingTask(FairseqTask):
                     **mask_args,
                 )
             else:
+                print(task_cfg.multi_corpus_keys)
+                
                 dataset_map = OrderedDict()
                 self.dataset_map = {}
                 multi_corpus_keys = [k.strip() for k in task_cfg.multi_corpus_keys.split(",")]
                 corpus_idx_map = {k: idx for idx, k in enumerate(multi_corpus_keys)}
+                print(corpus_idx_map)
                 data_keys = [k.split(":") for k in split.split(",")]
 
                 multi_corpus_sampling_weights = [float(val.strip()) for val in task_cfg.multi_corpus_sampling_weights.split(",")]

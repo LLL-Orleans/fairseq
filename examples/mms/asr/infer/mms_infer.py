@@ -32,30 +32,31 @@ def reorder_decode(hypos):
     return outputs
 
 def process(args):    
-    with tempfile.TemporaryDirectory() as tmpdir:
-        print(">>> preparing tmp manifest dir ...", file=sys.stderr)
-        tmpdir = Path(tmpdir)
-        with open(tmpdir / "dev.tsv", "w") as fw, open(tmpdir / "dev.uid", "w") as fu:
-            fw.write("/\n")
-            for audio in args.audio:
-                nsample = sf.SoundFile(audio).frames
-                fw.write(f"{audio}\t{nsample}\n")
-                fu.write(f"{audio}\n")
-        with open(tmpdir / "dev.ltr", "w") as fw:
-            fw.write("d u m m y | d u m m y |\n"*len(args.audio))
-        with open(tmpdir / "dev.wrd", "w") as fw:
-            fw.write("dummy dummy\n"*len(args.audio))
-        cmd = f"""
-        PYTHONPATH=. PREFIX=INFER HYDRA_FULL_ERROR=1 python examples/speech_recognition/new/infer.py -m --config-dir examples/mms/asr/config/ --config-name infer_common decoding.type=viterbi dataset.max_tokens=1440000 distributed_training.distributed_world_size=1 "common_eval.path='{args.model}'" task.data={tmpdir} dataset.gen_subset="{args.lang}:dev" common_eval.post_process={args.format} decoding.results_path={tmpdir} {args.extra_infer_args}
-        """
-        print(">>> loading model & running inference ...", file=sys.stderr)
-        subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL,)
-        with open(tmpdir/"hypo.word") as fr:
-            hypos = fr.readlines()
-            outputs = reorder_decode(hypos)
-            for ii, hypo in outputs:
-                hypo = re.sub("\(\S+\)$", "", hypo).strip()
-                print(f'===============\nInput: {args.audio[ii]}\nOutput: {hypo}')
+    tmpdir = Path.home().joinpath("TEMP")
+    tmpdir.mkdir(exist_ok=True)
+    print(">>> preparing tmp manifest dir ...", file=sys.stderr)
+    with open(tmpdir / f"{args.lang}:dev.tsv", "w") as fw, open(tmpdir / "dev.uid", "w") as fu:
+        fw.write("/\n")
+        for audio in args.audio:
+            nsample = sf.SoundFile(audio).frames
+            fw.write(f"{audio}\t{nsample}\n")
+            fu.write(f"{audio}\n")
+    with open(tmpdir / f"{args.lang}:dev.ltr", "w") as fw:
+        fw.write("d u m m y | d u m m y |\n"*len(args.audio))
+    with open(tmpdir / f"{args.lang}:dev.wrd", "w") as fw:
+        fw.write("dummy dummy\n"*len(args.audio))
+    cmd = f"""
+    PYTHONPATH=. PREFIX=INFER HYDRA_FULL_ERROR=1 python examples/speech_recognition/new/infer.py -m --config-dir examples/mms/asr/config/ --config-name infer_common decoding.type=viterbi dataset.max_tokens=1440000 distributed_training.distributed_world_size=1 "common_eval.path='{args.model}'" task.data={tmpdir} dataset.gen_subset="{args.lang}:dev" common_eval.post_process={args.format} decoding.results_path={tmpdir} {args.extra_infer_args}
+    """
+    print(cmd)
+    print(">>> loading model & running inference ...", file=sys.stderr)
+    subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL,)
+    with open(tmpdir/"hypo.word") as fr:
+        hypos = fr.readlines()
+        outputs = reorder_decode(hypos)
+        for ii, hypo in outputs:
+            hypo = re.sub("\(\S+\)$", "", hypo).strip()
+            print(f'{args.audio[ii]}\t{hypo}')
 
 
 if __name__ == "__main__":
