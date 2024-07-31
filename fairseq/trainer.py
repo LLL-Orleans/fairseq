@@ -28,7 +28,7 @@ from fairseq.logging import meters, metrics
 from fairseq.models.ema import build_ema
 from fairseq.nan_detector import NanDetector
 from fairseq.optim import lr_scheduler
-from fairseq.utils import safe_hasattr
+from fairseq.utils import safe_hasattr, SigtermHandler
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,8 @@ class Trainer(object):
                 "argparse.Namespace configuration is deprecated! Automatically converting to OmegaConf"
             )
             cfg = convert_namespace_to_omegaconf(cfg)
+
+        self.sigterm = SigtermHandler()
 
         self.cfg = cfg
         self.task = task

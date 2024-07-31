@@ -381,6 +381,8 @@ def validate_and_save(
     end_of_epoch: bool,
 ) -> Tuple[List[Optional[float]], bool]:
     num_updates = trainer.get_num_updates()
+    sigstop = trainer.sigterm.stop
+
     max_update = cfg.optimization.max_update or math.inf
 
     # Stopping conditions (and an additional one based on validation loss later
@@ -391,6 +393,11 @@ def validate_and_save(
         logger.info(
             f"Stopping training due to "
             f"num_updates: {num_updates} >= max_update: {max_update}"
+        )
+
+    if sigstop:
+        logger.info(
+            f"Saving due to SIGTERM signal."
         )
 
     training_time_hours = trainer.cumulative_training_time() / (60 * 60)
@@ -438,7 +445,7 @@ def validate_and_save(
     should_stop |= should_stop_early(cfg, valid_losses[0])
 
     # Save checkpoint
-    if do_save or should_stop:
+    if do_save or should_stop or sigstop:
         cp_path = checkpoint_utils.save_checkpoint(
             cfg.checkpoint, trainer, epoch_itr, valid_losses[0]
         )

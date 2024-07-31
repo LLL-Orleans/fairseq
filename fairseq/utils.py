@@ -14,6 +14,7 @@ import sys
 import warnings
 from itertools import accumulate
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
+import signal
 
 import torch
 import torch.nn.functional as F
@@ -39,6 +40,16 @@ logger = logging.getLogger(__name__)
 
 
 MANIFOLD_PATH_SEP = "|"
+
+
+class SigtermHandler:
+  stop = False
+
+  def __init__(self):
+    signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+  def exit_gracefully(self, signum, frame):
+    self.stop = True
 
 
 class FileContentsAction(argparse.Action):
