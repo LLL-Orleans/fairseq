@@ -267,7 +267,7 @@ class FileAudioDataset(RawAudioDataset):
         self.skipped_indices = set()
 
         with open(manifest_path, "r") as f:
-            self.root_dir = f.readline().strip()
+            self.root_dir = os.path.expandvars(f.readline().strip())
             for i, line in enumerate(f):
                 items = line.strip().split("\t")
                 assert len(items) == 2, line
@@ -379,7 +379,7 @@ class BinarizedAudioDataset(RawAudioDataset):
         root_path = os.path.join(data_dir, f"{split}.root")
         if os.path.exists(root_path):
             with open(root_path, "r") as f:
-                self.root_dir = next(f).strip()
+                self.root_dir = os.path.expandvars(next(f).strip())
         else:
             self.root_dir = None
 
