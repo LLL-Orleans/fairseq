@@ -38,6 +38,15 @@ _USE_XLA = False
 
 logger = logging.getLogger(__name__)
 
+try:
+    import idr_torch
+    logger.info("Loaded idr_torch sucessfully")
+    if idr_torch.rank == 0:
+        print(">>> Training on ", len(idr_torch.hostname), " nodes and ", idr_torch.size, " processes")
+
+except ImportError:
+    logger.warning("Couldn't load idr_torch")
+
 
 def is_master(cfg: DistributedTrainingConfig):
     return cfg.distributed_rank == 0
