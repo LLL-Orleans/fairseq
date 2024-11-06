@@ -18,10 +18,7 @@ from collections import deque, namedtuple
 
 import numpy as np
 import torch
-from data.replabels import unpack_replabels
-#from examples.speech_recognition.data.replabels import unpack_replabels
-from data.replabels import unpack_replabels
-from data.replabels import unpack_replabels
+from examples.speech_recognition.data.replabels import unpack_replabels
 from fairseq import tasks
 from fairseq.utils import apply_to_sample
 from omegaconf import open_dict
@@ -101,6 +98,33 @@ class W2lViterbiDecoder(W2lDecoder):
     def __init__(self, args, tgt_dict):
         super().__init__(args, tgt_dict)
 
+    def get_timesteps(self, token_idxs: List[int]) -> List[int]:
+        """Returns frame numbers corresponding to every non-blank token.
+
+        Parameters
+        ----------
+        token_idxs : List[int]
+            IDs of decoded tokens.
+
+        Returns
+        -------
+        List[int]
+            Frame numbers corresponding to every non-blank token.
+        """
+        timesteps = []
+        for i, token_idx in enumerate(token_idxs):
+            if token_idx == self.blank:
+                continue
+            if i == 0 or token_idx != token_idxs[i-1]:
+                timesteps.append(i)
+        return timesteps
+
+    def get_final_non_blank_timestep(self, token_idxs: List[int]) -> List[int]:
+        for i, token_idx in enumerate(reversed(token_idxs)):
+            if token_idx != self.blank:
+                return len(token_idxs) - i
+        return 0
+
     def decode(self, emissions):
         B, T, N = emissions.size()
         hypos = []
@@ -120,7 +144,12 @@ class W2lViterbiDecoder(W2lDecoder):
             get_data_ptr_as_bytes(workspace),
         )
         return [
-            [{"tokens": self.get_tokens(viterbi_path[b].tolist()), "score": 0}]
+            [{
+                "tokens": self.get_tokens(viterbi_path[b].tolist()),
+                "timesteps": self.get_timesteps(viterbi_path[b].tolist()),
+                "final_non_blank": self.get_final_non_blank_timestep(viterbi_path[b].tolist()),
+                "score": 0
+            }]
             for b in range(B)
         ]
 
@@ -219,6 +248,13 @@ class W2lKenLMDecoder(W2lDecoder):
                 timesteps.append(i)
         return timesteps
 
+
+    def get_final_non_blank_timestep(self, token_idxs: List[int]) -> List[int]:
+        for _, token_idx in enumerate(reversed(token_idxs)):
+            if token_idx != self.blank:
+                return token_idx
+        return 0
+
     def decode(self, emissions):
         B, T, N = emissions.size()
         hypos = []
@@ -233,6 +269,7 @@ class W2lKenLMDecoder(W2lDecoder):
                         "tokens": self.get_tokens(result.tokens),
                         "score": result.score,
                         "timesteps": self.get_timesteps(result.tokens),
+                        "final_non_blank": self.get_final_non_blank_timestep(result.tokens),
                         "words": [
                             self.word_dict.get_entry(x) for x in result.words if x >= 0
                         ],

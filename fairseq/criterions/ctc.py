@@ -196,13 +196,13 @@ class CtcCriterion(FairseqCriterion):
                 w_errs = 0
                 w_len = 0
                 wv_errs = 0
-                for lp, t, inp_l in zip(
+                for peek_idx, (lp, t, inp_l) in enumerate(zip(
                     lprobs_t,
                     sample["target_label"]
                     if "target_label" in sample
                     else sample["target"],
                     input_lengths,
-                ):
+                )):
                     lp = lp[:inp_l].unsqueeze(0)
 
                     decoded = None
@@ -229,7 +229,8 @@ class CtcCriterion(FairseqCriterion):
 
                     c_err += editdistance.eval(pred_units_arr, targ_units_arr)
                     c_len += len(targ_units_arr)
-                    print((pred_units_arr, targ_units_arr))
+                    # if peek_idx < 10:
+                    #     print(peek_idx, (pred_units_arr, targ_units_arr))
                     targ_words = post_process(targ_units, self.post_process).split()
 
                     pred_units = self.task.target_dictionary.string(pred_units_arr)
@@ -239,10 +240,12 @@ class CtcCriterion(FairseqCriterion):
                         pred_words = decoded["words"]
                         w_errs += editdistance.eval(pred_words, targ_words)
                         wv_errs += editdistance.eval(pred_words_raw, targ_words)
-                        print(pred_words, targ_words)
+                        # if peek_idx < 10:
+                        #     print(peek_idx, pred_words, targ_words)
                     else:
                         dist = editdistance.eval(pred_words_raw, targ_words)
-                        print(pred_words_raw, targ_words)
+                        # if peek_idx < 10:
+                        #     print(peek_idx, pred_words_raw, targ_words)
                         w_errs += dist
                         wv_errs += dist
 
